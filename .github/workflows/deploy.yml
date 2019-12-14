@@ -17,6 +17,7 @@ jobs:
           path: source
       - name: Build blog website
         run: |
+          if [ -e "${GITHUB_WORKSPACE}/_v2ray_com" ]; then rm -rf "${GITHUB_WORKSPACE}/_v2ray_com" ; fi
           bash "deploy-v2ray.mdoc.xyz.sh"
       - name: Deploy blog website
         run: |
@@ -24,18 +25,6 @@ jobs:
           chmod 700 $HOME/.ssh
           echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > $HOME/.ssh/id_rsa.action
           chmod 600 $HOME/.ssh/id_rsa.action
-          export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=owent -o IdentityFile=$HOME/.ssh/id_rsa.action"
-          if [ -e "${GITHUB_WORKSPACE}/../public_repo" ]; then rm -rf "${GITHUB_WORKSPACE}/../public_repo" ; fi
-          git clone --depth=1 --single-branch --branch "master" "git@github.com:owent-contrib/v2ray-website.git" "${GITHUB_WORKSPACE}/../public_repo"
-          cd "${GITHUB_WORKSPACE}/../public_repo"
-          git rm -r '*'
-          find "${GITHUB_WORKSPACE}/_v2ray_com" -maxdepth 1 | tail -n +2 | xargs -I % cp -rf % "$PWD"
-          echo "v2ray.mdoc.xyz" > CNAME
-          git config user.name "owent"
-          git config user.email "admin@owent.net"
-          git remote rm origin || true
-          git remote add origin "git@github.com:owent-contrib/v2ray-website.git"
-          git add --all
-          git commit --allow-empty -a -m "Automated deployment: $(date -u) ${GITHUB_SHA}"
-          git push -f origin HEAD:master
+          echo "v2ray.mdoc.xyz" > "${GITHUB_WORKSPACE}/_v2ray_com/CNAME"
+          rsync -rlptDvz -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=v2ray -o IdentityFile=$HOME/.ssh/id_rsa.action -o Port=36000" "${GITHUB_WORKSPACE}/_v2ray_com" v2ray@vr-h.ouri.app:/home/website/v2ray-doc
           echo "${GITHUB_SHA} was successfully deployed"
